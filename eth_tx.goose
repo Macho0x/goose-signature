@@ -26,18 +26,18 @@ fn append_byte(out: u8[>..]&, b: u8) {
 
 fn rlp_head(out: u8[>..]&, base: i64, n: i64) {
     if n < 56 {
-        append_byte(out, (base + n) as! u8);
+        append_byte(out, (base + n) as u8);
         return;
     }
     var be: u8[8] = [0; 8];
     var v = n;
     var c = 0;
     while v > 0 {
-        be[7 - c] = (v & 255) as! u8;
+        be[7 - c] = (v & 255) as u8;
         v = v >> 8;
         c += 1;
     }
-    append_byte(out, (base + 55 + c) as! u8);
+    append_byte(out, (base + 55 + c) as u8);
     append(out, be[8 - c..]);
 }
 
@@ -60,7 +60,7 @@ fn rlp_u64(out: u8[>..]&, n: u64) {
     var i = 8;
     while v > 0 {
         i -= 1;
-        tmp[i] = v as! u8;
+        tmp[i] = (v & 0xff) as u8;
         v = v >> 8;
     }
     rlp_bytes(out, tmp[i..]);

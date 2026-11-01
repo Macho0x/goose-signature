@@ -45,7 +45,7 @@ fn self_check() -> bool {
     if !eq_hex(cu, "8001") { return false; }
     var recent: u8[32] = [0; 32];
     var legacy: u8[>..] = [];
-    begin(legacy, false, 2, 1, 3, 6);
+    begin(legacy, Message.Legacy, 2, 1, 3, 6);
     push_key(legacy, 4);
     push_key(legacy, 6);
     push_key(legacy, 3);
@@ -70,7 +70,7 @@ fn self_check() -> bool {
     var memo: u8[>..] = [];
     if !load_hex("054a535a992921064d24e87160da387c7c35b5ddbc92bb81e41fa8404105448d", memo) { return false; }
     var note: u8[>..] = [];
-    begin(note, false, 1, 0, 1, 2);
+    begin(note, Message.Legacy, 1, 0, 1, 2);
     append(note, payer);
     append(note, memo);
     end_keys(note, recent, 1);
@@ -79,7 +79,7 @@ fn self_check() -> bool {
     var table: u8[32] = [0; 32];
     for i in 0..32 { table[i] = i as! u8; }
     var v0: u8[>..] = [];
-    begin(v0, true, 1, 0, 1, 2);
+    begin(v0, Message.V0, 1, 0, 1, 2);
     append(v0, payer);
     append(v0, memo);
     end_keys(v0, recent, 1);

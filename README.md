@@ -6,7 +6,7 @@
 
 <p align="center">
   ✍️ Transaction and typed-data signing for <a href="https://github.com/aardappel/goose">Goose</a><br>
-  <strong>0.2</strong> · <a href="LICENSE">Apache-2.0</a>
+  <strong>0.3</strong> · <a href="LICENSE">Apache-2.0</a>
 </p>
 
 Signs Ethereum, Bitcoin, and Solana messages. Hashes and key algorithms live in [goose-crypto](https://github.com/Macho0x/goose-crypto). This package calls them. The implementations are Goose, with no foreign calls and no vendored C. The tests in `tests/` check each module against a published vector.
@@ -50,7 +50,7 @@ A good run prints `signature ok`. Each file in `tests/` can also be run on its o
 | `btc_segwit` | BIP-143 |
 | `btc_taproot` | BIP-341 key-path and script-path |
 | `bip322` | Simple BIP-322 proofs for P2PKH, P2WPKH, and P2TR |
-| `solana` | Legacy and v0 transaction messages, and off-chain messages |
+| `solana` | Legacy and v0 transaction messages (`Message.Legacy`, `Message.V0`), and off-chain messages |
 
 ## Good to know
 

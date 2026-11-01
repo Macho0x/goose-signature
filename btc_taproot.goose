@@ -23,20 +23,20 @@ fn append_byte(out: u8[>..]&, b: u8) {
 }
 
 fn append_u32(out: u8[>..]&, v: u32) {
-    append_byte(out, v as! u8);
-    append_byte(out, (v >> 8) as! u8);
-    append_byte(out, (v >> 16) as! u8);
-    append_byte(out, (v >> 24) as! u8);
+    append_byte(out, (v & 0xff) as u8);
+    append_byte(out, ((v >> 8) & 0xff) as u8);
+    append_byte(out, ((v >> 16) & 0xff) as u8);
+    append_byte(out, (v >> 24) as u8);
 }
 
 fn append_cs(out: u8[>..]&, n: i64) {
     if n < 253 {
-        append_byte(out, n as! u8);
+        append_byte(out, n as u8);
         return;
     }
     append_byte(out, 253);
-    append_byte(out, n as! u8);
-    append_byte(out, (n >> 8) as! u8);
+    append_byte(out, (n & 0xff) as u8);
+    append_byte(out, ((n >> 8) & 0xff) as u8);
 }
 
 fn read_cs(b: u8[:], at: i64) -> i64, i64, bool {
@@ -92,7 +92,7 @@ fn tweak_public(pk: u8[:], merkle: u8[:]) -> u8[32], u8, bool {
     if !pok { return [0; 32], 0, false; }
     let x, odd, qok = bip340::xonly(secp256k1::pt_add(p, secp256k1::pt_mul(secp256k1::base(), t)));
     if !qok { return [0; 32], 0, false; }
-    return x, odd as! u8, true;
+    return x, odd as u8, true;
 }
 
 fn tweak_secret(secret: u8[:], merkle: u8[:]) -> u8[32], bool {
@@ -202,7 +202,7 @@ fn sigmsg(raw: u8[:], amounts: u8[:], scripts: u8[:], n_in: i64, hash_type: u8, 
         append(msg, scripts[ss..ss + sl]);
         append(msg, seqs[n_in * 4..(n_in + 1) * 4]);
     } else {
-        append_u32(msg, n_in as! u32);
+        append_u32(msg, n_in as u32);
     }
     if base == 3 { append(msg, sha256::hash(outs[ostart[n_in]..ostart[n_in] + olen[n_in]])); }
     if ext == 1 {

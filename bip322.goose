@@ -28,12 +28,12 @@ fn append_byte(out: u8[>..]&, b: u8) {
 
 fn append_cs(out: u8[>..]&, n: i64) {
     if n < 253 {
-        append_byte(out, n as! u8);
+        append_byte(out, n as u8);
         return;
     }
     append_byte(out, 253);
-    append_byte(out, n as! u8);
-    append_byte(out, (n >> 8) as! u8);
+    append_byte(out, (n & 0xff) as u8);
+    append_byte(out, ((n >> 8) & 0xff) as u8);
 }
 
 fn zeros(out: u8[>..]&, n: i64) {

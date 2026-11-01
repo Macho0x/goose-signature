@@ -22,20 +22,20 @@ fn append_byte(out: u8[>..]&, b: u8) {
 }
 
 fn append_u32(out: u8[>..]&, v: u32) {
-    append_byte(out, v as! u8);
-    append_byte(out, (v >> 8) as! u8);
-    append_byte(out, (v >> 16) as! u8);
-    append_byte(out, (v >> 24) as! u8);
+    append_byte(out, (v & 0xff) as u8);
+    append_byte(out, ((v >> 8) & 0xff) as u8);
+    append_byte(out, ((v >> 16) & 0xff) as u8);
+    append_byte(out, (v >> 24) as u8);
 }
 
 fn append_cs(out: u8[>..]&, n: i64) {
     if n < 253 {
-        append_byte(out, n as! u8);
+        append_byte(out, n as u8);
         return;
     }
     append_byte(out, 253);
-    append_byte(out, n as! u8);
-    append_byte(out, (n >> 8) as! u8);
+    append_byte(out, (n & 0xff) as u8);
+    append_byte(out, ((n >> 8) & 0xff) as u8);
 }
 
 fn read_cs(b: u8[:], at: i64) -> i64, i64, bool {

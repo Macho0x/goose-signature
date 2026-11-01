@@ -9,6 +9,8 @@ import crypto.ed25519;
 
 namespace solana;
 
+enum Message { Legacy, V0 }
+
 fn append(out: u8[>..]&, src: u8[:]) {
     if src.len == 0 { return; }
     let n = out.len;
@@ -28,10 +30,10 @@ fn append_cu16(out: u8[>..]&, n: i64) {
         let e = v & 0x7f;
         v = v >> 7;
         if v == 0 {
-            append_byte(out, e as! u8);
+            append_byte(out, e as u8);
             return;
         }
-        append_byte(out, (e | 0x80) as! u8);
+        append_byte(out, (e | 0x80) as u8);
     }
 }
 
@@ -41,8 +43,8 @@ fn push_key(out: u8[>..]&, first: u8) {
     out.resize(n + 31, 0);
 }
 
-fn begin(out: u8[>..]&, versioned: bool, required: u8, ro_signed: u8, ro_unsigned: u8, n_keys: i64) {
-    if versioned { append_byte(out, 0x80); }
+fn begin(out: u8[>..]&, message: Message, required: u8, ro_signed: u8, ro_unsigned: u8, n_keys: i64) {
+    if message == Message.V0 { append_byte(out, 0x80); }
     append_byte(out, required);
     append_byte(out, ro_signed);
     append_byte(out, ro_unsigned);
@@ -76,8 +78,8 @@ fn offchain(format: u8, message: u8[:], out: u8[>..]&) {
     append(out, "\xffsolana offchain");
     append_byte(out, 0);
     append_byte(out, format);
-    append_byte(out, message.len as! u8);
-    append_byte(out, (message.len >> 8) as! u8);
+    append_byte(out, (message.len & 0xff) as! u8);
+    append_byte(out, ((message.len >> 8) & 0xff) as! u8);
     append(out, message);
 }
 
