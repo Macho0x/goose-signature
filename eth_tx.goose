@@ -11,22 +11,9 @@ import crypto.secp256k1;
 
 namespace eth_tx;
 
-fn append(out: u8[>..]&, src: u8[:]) {
-    if src.len == 0 { return; }
-    let n = out.len;
-    out.resize(n + src.len, 0);
-    for i in 0..src.len { out[n + i] = src[i]; }
-}
-
-fn append_byte(out: u8[>..]&, b: u8) {
-    let n = out.len;
-    out.resize(n + 1, 0);
-    out[n] = b;
-}
-
 fn rlp_head(out: u8[>..]&, base: i64, n: i64) {
     if n < 56 {
-        append_byte(out, (base + n) as u8);
+        out.push((base + n) as u8);
         return;
     }
     var be: u8[8] = [0; 8];
@@ -37,17 +24,17 @@ fn rlp_head(out: u8[>..]&, base: i64, n: i64) {
         v = v >> 8;
         c += 1;
     }
-    append_byte(out, (base + 55 + c) as u8);
-    append(out, be[8 - c..]);
+    out.push((base + 55 + c) as u8);
+    out.append(be[8 - c..]);
 }
 
 fn rlp_bytes(out: u8[>..]&, data: u8[:]) {
     if data.len == 1 && data[0] < 0x80 {
-        append_byte(out, data[0]);
+        out.push(data[0]);
         return;
     }
     rlp_head(out, 0x80, data.len);
-    append(out, data);
+    out.append(data);
 }
 
 fn rlp_u64(out: u8[>..]&, n: u64) {
@@ -74,15 +61,15 @@ fn rlp_int(out: u8[>..]&, src: u8[:]) {
 
 fn rlp_list(out: u8[>..]&, payload: u8[:]) {
     rlp_head(out, 0xc0, payload.len);
-    append(out, payload);
+    out.append(payload);
 }
 
 fn hash_legacy(list: u8[:]) -> u8[32] { keccak256::hash(list) }
 
 fn hash_typed(ty: u8, list: u8[:]) -> u8[32] {
     var b: u8[>..] = [];
-    append_byte(b, ty);
-    append(b, list);
+    b.push(ty);
+    b.append(list);
     return keccak256::hash(b);
 }
 

@@ -11,76 +11,63 @@ namespace solana;
 
 enum Message { Legacy, V0 }
 
-fn append(out: u8[>..]&, src: u8[:]) {
-    if src.len == 0 { return; }
-    let n = out.len;
-    out.resize(n + src.len, 0);
-    for i in 0..src.len { out[n + i] = src[i]; }
-}
-
-fn append_byte(out: u8[>..]&, b: u8) {
-    let n = out.len;
-    out.resize(n + 1, 0);
-    out[n] = b;
-}
-
 fn append_cu16(out: u8[>..]&, n: i64) {
     var v = n;
     while true {
         let e = v & 0x7f;
         v = v >> 7;
         if v == 0 {
-            append_byte(out, e as u8);
+            out.push(e as u8);
             return;
         }
-        append_byte(out, (e | 0x80) as u8);
+        out.push((e | 0x80) as u8);
     }
 }
 
 fn push_key(out: u8[>..]&, first: u8) {
-    append_byte(out, first);
+    out.push(first);
     let n = out.len;
     out.resize(n + 31, 0);
 }
 
 fn begin(out: u8[>..]&, message: Message, required: u8, ro_signed: u8, ro_unsigned: u8, n_keys: i64) {
-    if message == Message.V0 { append_byte(out, 0x80); }
-    append_byte(out, required);
-    append_byte(out, ro_signed);
-    append_byte(out, ro_unsigned);
+    if message == Message.V0 { out.push(0x80); }
+    out.push(required);
+    out.push(ro_signed);
+    out.push(ro_unsigned);
     append_cu16(out, n_keys);
 }
 
 fn end_keys(out: u8[>..]&, recenthash: u8[:], n_ix: i64) {
-    append(out, recenthash);
+    out.append(recenthash);
     append_cu16(out, n_ix);
 }
 
 fn push_ix(out: u8[>..]&, program: u8, accounts: u8[:], data: u8[:]) {
-    append_byte(out, program);
+    out.push(program);
     append_cu16(out, accounts.len);
-    append(out, accounts);
+    out.append(accounts);
     append_cu16(out, data.len);
-    append(out, data);
+    out.append(data);
 }
 
 fn begin_lookups(out: u8[>..]&, n: i64) { append_cu16(out, n); }
 
 fn push_lookup(out: u8[>..]&, table: u8[:], writable: u8[:], readonly: u8[:]) {
-    append(out, table);
+    out.append(table);
     append_cu16(out, writable.len);
-    append(out, writable);
+    out.append(writable);
     append_cu16(out, readonly.len);
-    append(out, readonly);
+    out.append(readonly);
 }
 
 fn offchain(format: u8, message: u8[:], out: u8[>..]&) {
-    append(out, "\xffsolana offchain");
-    append_byte(out, 0);
-    append_byte(out, format);
-    append_byte(out, (message.len & 0xff) as! u8);
-    append_byte(out, ((message.len >> 8) & 0xff) as! u8);
-    append(out, message);
+    out.append("\xffsolana offchain");
+    out.push(0);
+    out.push(format);
+    out.push((message.len & 0xff) as! u8);
+    out.push(((message.len >> 8) & 0xff) as! u8);
+    out.append(message);
 }
 
 fn sign(seed: u8[:], message: u8[:]) -> u8[64], bool { return ed25519::sign(seed, message); }

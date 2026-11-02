@@ -9,34 +9,21 @@ import crypto.bip340;
 
 namespace btc_taproot;
 
-fn append(out: u8[>..]&, src: u8[:]) {
-    if src.len == 0 { return; }
-    let n = out.len;
-    out.resize(n + src.len, 0);
-    for i in 0..src.len { out[n + i] = src[i]; }
-}
-
-fn append_byte(out: u8[>..]&, b: u8) {
-    let n = out.len;
-    out.resize(n + 1, 0);
-    out[n] = b;
-}
-
 fn append_u32(out: u8[>..]&, v: u32) {
-    append_byte(out, (v & 0xff) as u8);
-    append_byte(out, ((v >> 8) & 0xff) as u8);
-    append_byte(out, ((v >> 16) & 0xff) as u8);
-    append_byte(out, (v >> 24) as u8);
+    out.push((v & 0xff) as u8);
+    out.push(((v >> 8) & 0xff) as u8);
+    out.push(((v >> 16) & 0xff) as u8);
+    out.push((v >> 24) as u8);
 }
 
 fn append_cs(out: u8[>..]&, n: i64) {
     if n < 253 {
-        append_byte(out, n as u8);
+        out.push(n as u8);
         return;
     }
-    append_byte(out, 253);
-    append_byte(out, (n & 0xff) as u8);
-    append_byte(out, ((n >> 8) & 0xff) as u8);
+    out.push(253);
+    out.push((n & 0xff) as u8);
+    out.push(((n >> 8) & 0xff) as u8);
 }
 
 fn read_cs(b: u8[:], at: i64) -> i64, i64, bool {
@@ -66,9 +53,9 @@ fn less(a: u8[:], b: u8[:]) -> bool {
 
 fn tapleaf(version: u8, script: u8[:]) -> u8[32] {
     var body: u8[>..] = [];
-    append_byte(body, version);
+    body.push(version);
     append_cs(body, script.len);
-    append(body, script);
+    body.append(script);
     return tag("TapLeaf", body, body[..0]);
 }
 
@@ -148,12 +135,12 @@ fn sigmsg(raw: u8[:], amounts: u8[:], scripts: u8[:], n_in: i64, hash_type: u8, 
     var at = at1;
     for i in 0..n_vin {
         if at + 36 > raw.len { return false; }
-        append(prevs, raw[at..at + 36]);
+        prevs.append(raw[at..at + 36]);
         at += 36;
         let sl, at2, ok = read_cs(raw, at);
         if !ok || at2 + sl + 4 > raw.len { return false; }
         at = at2 + sl;
-        append(seqs, raw[at..at + 4]);
+        seqs.append(raw[at..at + 4]);
         at += 4;
     }
     let n_out, at3, ok3 = read_cs(raw, at);
@@ -173,41 +160,41 @@ fn sigmsg(raw: u8[:], amounts: u8[:], scripts: u8[:], n_in: i64, hash_type: u8, 
         olen.resize(nlen + 1, 0);
         ostart.resize(nlen + 1, 0);
         ostart[nlen] = outs.len;
-        append(outs, raw[start..at]);
+        outs.append(raw[start..at]);
         olen[nlen] = outs.len - ostart[nlen];
     }
     if at + 4 != raw.len { return false; }
     let base = hash_type & 3;
     if base == 3 && n_in >= n_out { return false; }
     let anyone = (hash_type & 0x80) != 0;
-    append_byte(msg, 0);
-    append_byte(msg, hash_type);
-    append(msg, raw[..4]);
-    append(msg, raw[raw.len - 4..]);
+    msg.push(0);
+    msg.push(hash_type);
+    msg.append(raw[..4]);
+    msg.append(raw[raw.len - 4..]);
     if !anyone {
-        append(msg, sha256::hash(prevs));
-        append(msg, sha256::hash(amounts));
-        append(msg, sha256::hash(scripts));
-        append(msg, sha256::hash(seqs));
+        msg.append(sha256::hash(prevs));
+        msg.append(sha256::hash(amounts));
+        msg.append(sha256::hash(scripts));
+        msg.append(sha256::hash(seqs));
     }
-    if base != 2 && base != 3 { append(msg, sha256::hash(outs)); }
+    if base != 2 && base != 3 { msg.append(sha256::hash(outs)); }
     var spend: u8 = 0;
     if ext == 1 { spend = 2; }
-    append_byte(msg, spend);
+    msg.push(spend);
     if anyone {
-        append(msg, prevs[n_in * 36..(n_in + 1) * 36]);
-        append(msg, amounts[n_in * 8..(n_in + 1) * 8]);
+        msg.append(prevs[n_in * 36..(n_in + 1) * 36]);
+        msg.append(amounts[n_in * 8..(n_in + 1) * 8]);
         let ss, sl, sok = script_span(scripts, n_in);
         if !sok { return false; }
-        append(msg, scripts[ss..ss + sl]);
-        append(msg, seqs[n_in * 4..(n_in + 1) * 4]);
+        msg.append(scripts[ss..ss + sl]);
+        msg.append(seqs[n_in * 4..(n_in + 1) * 4]);
     } else {
         append_u32(msg, n_in as u32);
     }
-    if base == 3 { append(msg, sha256::hash(outs[ostart[n_in]..ostart[n_in] + olen[n_in]])); }
+    if base == 3 { msg.append(sha256::hash(outs[ostart[n_in]..ostart[n_in] + olen[n_in]])); }
     if ext == 1 {
-        append(msg, leaf);
-        append_byte(msg, key_version);
+        msg.append(leaf);
+        msg.push(key_version);
         append_u32(msg, codesep);
     }
     return true;
@@ -226,8 +213,8 @@ fn sign_key(secret: u8[:], raw: u8[:], amounts: u8[:], scripts: u8[:], n_in: i64
     if !dok { return false; }
     let sig, sok = bip340::sign(tweaked, dig, aux);
     if !sok { return false; }
-    append(out, sig);
-    if hash_type != 0 { append_byte(out, hash_type); }
+    out.append(sig);
+    if hash_type != 0 { out.push(hash_type); }
     return true;
 }
 
@@ -236,7 +223,7 @@ fn sign_script(secret: u8[:], raw: u8[:], amounts: u8[:], scripts: u8[:], n_in: 
     if !dok { return false; }
     let sig, sok = bip340::sign(secret, dig, aux);
     if !sok { return false; }
-    append(out, sig);
-    if hash_type != 0 { append_byte(out, hash_type); }
+    out.append(sig);
+    if hash_type != 0 { out.push(hash_type); }
     return true;
 }

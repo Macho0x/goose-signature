@@ -8,34 +8,21 @@ import crypto.secp256k1;
 
 namespace btc_legacy;
 
-fn append(out: u8[>..]&, src: u8[:]) {
-    if src.len == 0 { return; }
-    let n = out.len;
-    out.resize(n + src.len, 0);
-    for i in 0..src.len { out[n + i] = src[i]; }
-}
-
-fn append_byte(out: u8[>..]&, b: u8) {
-    let n = out.len;
-    out.resize(n + 1, 0);
-    out[n] = b;
-}
-
 fn append_u32(out: u8[>..]&, v: u32) {
-    append_byte(out, (v & 0xff) as u8);
-    append_byte(out, ((v >> 8) & 0xff) as u8);
-    append_byte(out, ((v >> 16) & 0xff) as u8);
-    append_byte(out, (v >> 24) as u8);
+    out.push((v & 0xff) as u8);
+    out.push(((v >> 8) & 0xff) as u8);
+    out.push(((v >> 16) & 0xff) as u8);
+    out.push((v >> 24) as u8);
 }
 
 fn append_cs(out: u8[>..]&, n: i64) {
     if n < 253 {
-        append_byte(out, n as u8);
+        out.push(n as u8);
         return;
     }
-    append_byte(out, 253);
-    append_byte(out, (n & 0xff) as u8);
-    append_byte(out, ((n >> 8) & 0xff) as u8);
+    out.push(253);
+    out.push((n & 0xff) as u8);
+    out.push(((n >> 8) & 0xff) as u8);
 }
 
 fn read_cs(b: u8[:], at: i64) -> i64, i64, bool {
@@ -72,7 +59,7 @@ fn strip_codesep(script: u8[:], out: u8[>..]&) -> bool {
         let op = script[i];
         i += 1;
         if op == 0xab { continue; }
-        append_byte(out, op);
+        out.push(op);
         var n: i64 = 0;
         var len_of_len = 0;
         if op >= 1 && op <= 75 {
@@ -91,11 +78,11 @@ fn strip_codesep(script: u8[:], out: u8[>..]&) -> bool {
                 let bk: i64 = script[i + k];
                 n |= bk << (8 * k);
             }
-            append(out, script[i..i + len_of_len]);
+            out.append(script[i..i + len_of_len]);
             i += len_of_len;
         }
         if n < 0 || i + n > script.len { return false; }
-        append(out, script[i..i + n]);
+        out.append(script[i..i + n]);
         i += n;
     }
     return true;
@@ -112,12 +99,12 @@ fn sighash(raw: u8[:], script: u8[:], n_in: i64, hash_type: u32) -> u8[32], bool
     var at = at1;
     for i in 0..n_in_count {
         if at + 36 > raw.len { return [0; 32], false; }
-        append(prevs, raw[at..at + 36]);
+        prevs.append(raw[at..at + 36]);
         at += 36;
         let sl, at2, ok = read_cs(raw, at);
         if !ok || at2 + sl + 4 > raw.len { return [0; 32], false; }
         at = at2 + sl;
-        append(seqs, raw[at..at + 4]);
+        seqs.append(raw[at..at + 4]);
         at += 4;
     }
     let n_out, at3, ok3 = read_cs(raw, at);
@@ -128,14 +115,14 @@ fn sighash(raw: u8[:], script: u8[:], n_in: i64, hash_type: u32) -> u8[32], bool
     var olen: i64[>..] = [];
     for i in 0..n_out {
         if at + 8 > raw.len { return [0; 32], false; }
-        append(vals, raw[at..at + 8]);
+        vals.append(raw[at..at + 8]);
         at += 8;
         let sl, at2, ok = read_cs(raw, at);
         if !ok || at2 + sl > raw.len { return [0; 32], false; }
         let nlen = olen.len;
         olen.resize(nlen + 1, 0);
         olen[nlen] = sl;
-        append(oscripts, raw[at2..at2 + sl]);
+        oscripts.append(raw[at2..at2 + sl]);
         at = at2 + sl;
     }
     if at + 4 != raw.len { return [0; 32], false; }
@@ -148,7 +135,7 @@ fn sighash(raw: u8[:], script: u8[:], n_in: i64, hash_type: u32) -> u8[32], bool
     var code: u8[>..] = [];
     if !strip_codesep(script, code) { return [0; 32], false; }
     var pre: u8[>..] = [];
-    append(pre, raw[..4]);
+    pre.append(raw[..4]);
     let anyone = (hash_type & 0x80) != 0;
     var n_ser = n_in_count;
     if anyone { n_ser = 1; }
@@ -160,17 +147,17 @@ fn sighash(raw: u8[:], script: u8[:], n_in: i64, hash_type: u32) -> u8[32], bool
         last = n_in + 1;
     }
     for i in first..last {
-        append(pre, prevs[i * 36..(i + 1) * 36]);
+        pre.append(prevs[i * 36..(i + 1) * 36]);
         if i == n_in {
             append_cs(pre, code.len);
-            append(pre, code);
+            pre.append(code);
         } else {
-            append_byte(pre, 0);
+            pre.push(0);
         }
         if i != n_in && (base == 2 || base == 3) {
-            append(pre, [0, 0, 0, 0]);
+            pre.append([0, 0, 0, 0]);
         } else {
-            append(pre, seqs[i * 4..(i + 1) * 4]);
+            pre.append(seqs[i * 4..(i + 1) * 4]);
         }
     }
     var n_vout = n_out;
@@ -180,16 +167,16 @@ fn sighash(raw: u8[:], script: u8[:], n_in: i64, hash_type: u32) -> u8[32], bool
     var off = 0;
     for i in 0..n_vout {
         if base == 3 && i < n_in {
-            append(pre, [255, 255, 255, 255, 255, 255, 255, 255]);
-            append_byte(pre, 0);
+            pre.append([255, 255, 255, 255, 255, 255, 255, 255]);
+            pre.push(0);
         } else {
-            append(pre, vals[i * 8..(i + 1) * 8]);
+            pre.append(vals[i * 8..(i + 1) * 8]);
             append_cs(pre, olen[i]);
-            append(pre, oscripts[off..off + olen[i]]);
+            pre.append(oscripts[off..off + olen[i]]);
         }
         off += olen[i];
     }
-    append(pre, raw[raw.len - 4..]);
+    pre.append(raw[raw.len - 4..]);
     append_u32(pre, hash_type);
     return hash256(pre), true;
 }
@@ -200,10 +187,10 @@ fn der_int(out: u8[>..]&, be: u8[:]) {
     let high = (be[i] & 0x80) != 0;
     var n = be.len - i;
     if high { n += 1; }
-    append_byte(out, 2);
-    append_byte(out, n as u8);
-    if high { append_byte(out, 0); }
-    append(out, be[i..]);
+    out.push(2);
+    out.push(n as u8);
+    if high { out.push(0); }
+    out.append(be[i..]);
 }
 
 fn encode_der(sig: u8[:], hash_type: u32, out: u8[>..]&) -> bool {
@@ -211,10 +198,10 @@ fn encode_der(sig: u8[:], hash_type: u32, out: u8[>..]&) -> bool {
     var body: u8[>..] = [];
     der_int(body, sig[..32]);
     der_int(body, sig[32..]);
-    append_byte(out, 0x30);
-    append_byte(out, body.len as u8);
-    append(out, body);
-    append_byte(out, (hash_type & 0xff) as! u8);
+    out.push(0x30);
+    out.push(body.len as u8);
+    out.append(body);
+    out.push((hash_type & 0xff) as! u8);
     return true;
 }
 

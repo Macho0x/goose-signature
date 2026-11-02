@@ -8,34 +8,21 @@ import btc_legacy;
 
 namespace btc_segwit;
 
-fn append(out: u8[>..]&, src: u8[:]) {
-    if src.len == 0 { return; }
-    let n = out.len;
-    out.resize(n + src.len, 0);
-    for i in 0..src.len { out[n + i] = src[i]; }
-}
-
-fn append_byte(out: u8[>..]&, b: u8) {
-    let n = out.len;
-    out.resize(n + 1, 0);
-    out[n] = b;
-}
-
 fn append_u32(out: u8[>..]&, v: u32) {
-    append_byte(out, (v & 0xff) as u8);
-    append_byte(out, ((v >> 8) & 0xff) as u8);
-    append_byte(out, ((v >> 16) & 0xff) as u8);
-    append_byte(out, (v >> 24) as u8);
+    out.push((v & 0xff) as u8);
+    out.push(((v >> 8) & 0xff) as u8);
+    out.push(((v >> 16) & 0xff) as u8);
+    out.push((v >> 24) as u8);
 }
 
 fn append_cs(out: u8[>..]&, n: i64) {
     if n < 253 {
-        append_byte(out, n as u8);
+        out.push(n as u8);
         return;
     }
-    append_byte(out, 253);
-    append_byte(out, (n & 0xff) as u8);
-    append_byte(out, ((n >> 8) & 0xff) as u8);
+    out.push(253);
+    out.push((n & 0xff) as u8);
+    out.push(((n >> 8) & 0xff) as u8);
 }
 
 fn read_cs(b: u8[:], at: i64) -> i64, i64, bool {
@@ -64,12 +51,12 @@ fn sighash(raw: u8[:], script: u8[:], amount: u8[:], n_in: i64, hash_type: u32) 
     var at = at1;
     for i in 0..n_in_count {
         if at + 36 > raw.len { return [0; 32], false; }
-        append(prevs, raw[at..at + 36]);
+        prevs.append(raw[at..at + 36]);
         at += 36;
         let sl, at2, ok = read_cs(raw, at);
         if !ok || at2 + sl + 4 > raw.len { return [0; 32], false; }
         at = at2 + sl;
-        append(seqs, raw[at..at + 4]);
+        seqs.append(raw[at..at + 4]);
         at += 4;
     }
     let n_out, at3, ok3 = read_cs(raw, at);
@@ -81,12 +68,12 @@ fn sighash(raw: u8[:], script: u8[:], amount: u8[:], n_in: i64, hash_type: u32) 
     for i in 0..n_out {
         let start = outs.len;
         if at + 8 > raw.len { return [0; 32], false; }
-        append(outs, raw[at..at + 8]);
+        outs.append(raw[at..at + 8]);
         at += 8;
         let sl, at2, ok = read_cs(raw, at);
         if !ok || at2 + sl > raw.len { return [0; 32], false; }
         append_cs(outs, sl);
-        append(outs, raw[at2..at2 + sl]);
+        outs.append(raw[at2..at2 + sl]);
         at = at2 + sl;
         let nlen = olen.len;
         olen.resize(nlen + 1, 0);
@@ -98,30 +85,30 @@ fn sighash(raw: u8[:], script: u8[:], amount: u8[:], n_in: i64, hash_type: u32) 
     let base = hash_type & 0x1f;
     let anyone = (hash_type & 0x80) != 0;
     var pre: u8[>..] = [];
-    append(pre, raw[..4]);
+    pre.append(raw[..4]);
     if anyone {
-        append(pre, zeros());
+        pre.append(zeros());
     } else {
-        append(pre, hash256(prevs));
+        pre.append(hash256(prevs));
     }
     if anyone || base == 2 || base == 3 {
-        append(pre, zeros());
+        pre.append(zeros());
     } else {
-        append(pre, hash256(seqs));
+        pre.append(hash256(seqs));
     }
-    append(pre, prevs[n_in * 36..(n_in + 1) * 36]);
+    pre.append(prevs[n_in * 36..(n_in + 1) * 36]);
     append_cs(pre, script.len);
-    append(pre, script);
-    append(pre, amount);
-    append(pre, seqs[n_in * 4..(n_in + 1) * 4]);
+    pre.append(script);
+    pre.append(amount);
+    pre.append(seqs[n_in * 4..(n_in + 1) * 4]);
     if base == 2 || (base == 3 && n_in >= n_out) {
-        append(pre, zeros());
+        pre.append(zeros());
     } else if base == 3 {
-        append(pre, hash256(outs[ostart[n_in]..ostart[n_in] + olen[n_in]]));
+        pre.append(hash256(outs[ostart[n_in]..ostart[n_in] + olen[n_in]]));
     } else {
-        append(pre, hash256(outs));
+        pre.append(hash256(outs));
     }
-    append(pre, raw[raw.len - 4..]);
+    pre.append(raw[raw.len - 4..]);
     append_u32(pre, hash_type);
     return hash256(pre), true;
 }

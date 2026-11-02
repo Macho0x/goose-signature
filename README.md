@@ -6,7 +6,7 @@
 
 <p align="center">
   ✍️ Transaction and typed-data signing for <a href="https://github.com/aardappel/goose">Goose</a><br>
-  <strong>0.3</strong> · <a href="LICENSE">Apache-2.0</a>
+  <strong>0.3.1</strong> · <a href="LICENSE">Apache-2.0</a>
 </p>
 
 Signs Ethereum, Bitcoin, and Solana messages. Hashes and key algorithms live in [goose-crypto](https://github.com/Macho0x/goose-crypto). This package calls them. The implementations are Goose, with no foreign calls and no vendored C. The tests in `tests/` check each module against a published vector.

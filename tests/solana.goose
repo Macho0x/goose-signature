@@ -59,8 +59,8 @@ fn self_check() -> bool {
     push_ix(legacy, 4, [5], z4);
     push_ix(legacy, 4, [1], z4);
     var tagged: u8[>..] = [];
-    append(tagged, "solana-tx-message-v1");
-    append(tagged, legacy);
+    tagged.append("solana-tx-message-v1");
+    tagged.append(legacy);
     if !eq_hex(blake3::hash(tagged), "607364cf524fa2c83a76c182fdacaf13137822dd716596464d5a2a02383927de") { return false; }
     var seed: u8[>..] = [];
     if !load_hex("9d61b19deffd5a60ba844af492ec2cc44449c5697b326919703bac031cae7f60", seed) { return false; }
@@ -71,8 +71,8 @@ fn self_check() -> bool {
     if !load_hex("054a535a992921064d24e87160da387c7c35b5ddbc92bb81e41fa8404105448d", memo) { return false; }
     var note: u8[>..] = [];
     begin(note, Message.Legacy, 1, 0, 1, 2);
-    append(note, payer);
-    append(note, memo);
+    note.append(payer);
+    note.append(memo);
     end_keys(note, recent, 1);
     push_ix(note, 1, [0], "hello");
     if !signed_ok(seed, note) { return false; }
@@ -80,8 +80,8 @@ fn self_check() -> bool {
     for i in 0..32 { table[i] = i as! u8; }
     var v0: u8[>..] = [];
     begin(v0, Message.V0, 1, 0, 1, 2);
-    append(v0, payer);
-    append(v0, memo);
+    v0.append(payer);
+    v0.append(memo);
     end_keys(v0, recent, 1);
     push_ix(v0, 1, [0], "hello");
     begin_lookups(v0, 1);

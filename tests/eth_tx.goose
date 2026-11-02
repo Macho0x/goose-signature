@@ -32,19 +32,19 @@ fn append_access(out: u8[>..]&, addr: u8[:], slot: u8[:]) {
     rlp_list(keylist, keys);
     var item: u8[>..] = [];
     rlp_bytes(item, addr);
-    append(item, keylist);
+    item.append(keylist);
     var itemlist: u8[>..] = [];
     rlp_list(itemlist, item);
     var al: u8[>..] = [];
     rlp_list(al, itemlist);
-    append(out, al);
+    out.append(al);
 }
 
 fn append_empty_list(out: u8[>..]&) {
     var e: u8[>..] = [];
     var l: u8[>..] = [];
     rlp_list(l, e);
-    append(out, l);
+    out.append(l);
 }
 
 fn wrap(payload: u8[:]) -> u8[>..] {
@@ -138,7 +138,7 @@ fn self_check() -> bool {
     rlp_bytes(hashes, vh);
     var hashlist: u8[>..] = [];
     rlp_list(hashlist, hashes);
-    append(t3, hashlist);
+    t3.append(hashlist);
     let t3_list = wrap(t3);
     if !hash_typed(3, t3_list).eq_hex("f626cf5eb491c35cd2f7ed36c841f1ec4472964dc661d85f7d6188e80f33b34c") { return false; }
 
@@ -174,7 +174,7 @@ fn self_check() -> bool {
     rlp_list(one_list, one);
     var alist: u8[>..] = [];
     rlp_list(alist, one_list);
-    append(t4, alist);
+    t4.append(alist);
     let t4_list = wrap(t4);
     if !hash_typed(4, t4_list).eq_hex("aff5dd5b3a1de0d8e5fe43108ff4ff0f8a25893ca3db7bb5e9e373a04c4b0442") { return false; }
 
@@ -200,9 +200,9 @@ fn self_check() -> bool {
     rlp_int(t2, sig2[..32]);
     rlp_int(t2, sig2[32..64]);
     var raw2: u8[>..] = [];
-    append_byte(raw2, 2);
+    raw2.push(2);
     var t2s = wrap(t2);
-    append(raw2, t2s);
+    raw2.append(t2s);
     if !raw2.eq_hex("02f8b28205392284773594008477359400830186a09409616c3d61b3331fc4109a9e41a8bdb7d9776609865af3107a400086616263646566f838f7940000000000000000000000000000000000000001e1a0010000000000000000000000000000000000000000000000000000000000000001a06c38b2e120203461c37a7b1a90955f9fe12a44c2de898b2a6ba859567d4e2861a0027b9e7869127b2046f0e34c37ef06df68a3f397430c7a9bf757ff31d58b85d5") { return false; }
 
     let sig3, ok3 = sign_hash(secret2, hash_typed(5, auth_list));

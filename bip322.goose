@@ -13,27 +13,14 @@ import btc_taproot;
 
 namespace bip322;
 
-fn append(out: u8[>..]&, src: u8[:]) {
-    if src.len == 0 { return; }
-    let n = out.len;
-    out.resize(n + src.len, 0);
-    for i in 0..src.len { out[n + i] = src[i]; }
-}
-
-fn append_byte(out: u8[>..]&, b: u8) {
-    let n = out.len;
-    out.resize(n + 1, 0);
-    out[n] = b;
-}
-
 fn append_cs(out: u8[>..]&, n: i64) {
     if n < 253 {
-        append_byte(out, n as u8);
+        out.push(n as u8);
         return;
     }
-    append_byte(out, 253);
-    append_byte(out, (n & 0xff) as u8);
-    append_byte(out, ((n >> 8) & 0xff) as u8);
+    out.push(253);
+    out.push((n & 0xff) as u8);
+    out.push(((n >> 8) & 0xff) as u8);
 }
 
 fn zeros(out: u8[>..]&, n: i64) {
@@ -55,36 +42,36 @@ fn txid(raw: u8[:]) -> u8[32] {
 fn build_spend(msg: u8[:], challenge: u8[:], out: u8[>..]&) {
     let mh = message_hash(msg);
     zeros(out, 4);
-    append_byte(out, 1);
+    out.push(1);
     zeros(out, 32);
-    append_byte(out, 255);
-    append_byte(out, 255);
-    append_byte(out, 255);
-    append_byte(out, 255);
+    out.push(255);
+    out.push(255);
+    out.push(255);
+    out.push(255);
     append_cs(out, 34);
-    append_byte(out, 0);
-    append_byte(out, 32);
-    append(out, mh);
+    out.push(0);
+    out.push(32);
+    out.append(mh);
     zeros(out, 4);
-    append_byte(out, 1);
+    out.push(1);
     zeros(out, 8);
     append_cs(out, challenge.len);
-    append(out, challenge);
+    out.append(challenge);
     zeros(out, 4);
 }
 
 fn build_sign(spend: u8[:], out: u8[>..]&) {
     let prev = hash256(spend);
     zeros(out, 4);
-    append_byte(out, 1);
-    append(out, prev);
+    out.push(1);
+    out.append(prev);
     zeros(out, 4);
-    append_byte(out, 0);
+    out.push(0);
     zeros(out, 4);
-    append_byte(out, 1);
+    out.push(1);
     zeros(out, 8);
-    append_byte(out, 1);
-    append_byte(out, 0x6a);
+    out.push(1);
+    out.push(0x6a);
     zeros(out, 4);
 }
 
@@ -98,9 +85,9 @@ fn prove_p2pkh(secret: u8[:], msg: u8[:], script: u8[:], out: u8[>..]&) -> bool 
     let pk, ok = secp256k1::pubkey_compressed(secret);
     if !ok { return false; }
     append_cs(out, der.len);
-    append(out, der);
+    out.append(der);
     append_cs(out, 33);
-    append(out, pk);
+    out.append(pk);
     return true;
 }
 
@@ -114,11 +101,11 @@ fn prove_p2wpkh(secret: u8[:], msg: u8[:], challenge: u8[:], script_code: u8[:],
     if !btc_segwit::sign(secret, sign, script_code, amount, 0, 1, der) { return false; }
     let pk, ok = secp256k1::pubkey_compressed(secret);
     if !ok { return false; }
-    append_byte(out, 2);
+    out.push(2);
     append_cs(out, der.len);
-    append(out, der);
-    append_byte(out, 33);
-    append(out, pk);
+    out.append(der);
+    out.push(33);
+    out.append(pk);
     return true;
 }
 
@@ -138,11 +125,11 @@ fn prove_p2tr(secret: u8[:], msg: u8[:], aux: u8[:], out: u8[>..]&) -> bool {
     var amounts: u8[8] = [0; 8];
     var scripts: u8[>..] = [];
     append_cs(scripts, 34);
-    append(scripts, challenge);
+    scripts.append(challenge);
     var sig: u8[>..] = [];
     if !btc_taproot::sign_key(secret, sign, amounts, scripts, 0, 0, [], aux, sig) { return false; }
-    append_byte(out, 1);
+    out.push(1);
     append_cs(out, sig.len);
-    append(out, sig);
+    out.append(sig);
     return true;
 }

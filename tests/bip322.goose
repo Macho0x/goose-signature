@@ -75,7 +75,7 @@ fn self_check() -> bool {
     var amounts: u8[8] = [0; 8];
     var scripts: u8[>..] = [];
     append_cs(scripts, 34);
-    append(scripts, tr_script);
+    scripts.append(tr_script);
     let dig, dok = btc_taproot::sighash(sign, amounts, scripts, 0, 0, 0, [], 0, 0);
     if !dok || !eq_hex(dig, "ba9488371fa8a87c8fbd559a91beba08be7db49960f20d1372d295307df576cd") { return false; }
     var pubsig: u8[>..] = [];

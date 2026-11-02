@@ -30,12 +30,11 @@ fn write_dec(dst: u8[:], at: i64, n: i64) -> i64 {
 fn digest(message: u8[:]) -> u8[32] {
     let prefix = "\x19Ethereum Signed Message:\n";
     var buf: u8[>..] = [];
-    buf.resize(prefix.len + 20 + message.len, 0);
-    for i in 0..prefix.len { buf[i] = prefix[i]; }
-    let nd = write_dec(buf[prefix.len..], 0, message.len);
-    let start = prefix.len + nd;
-    for i in 0..message.len { buf[start + i] = message[i]; }
-    buf.resize(start + message.len, 0);
+    buf.append(prefix);
+    var digits: u8[20] = [0; 20];
+    let nd = write_dec(digits, 0, message.len);
+    buf.append(digits[..nd]);
+    buf.append(message);
     return keccak256::hash(buf);
 }
 
